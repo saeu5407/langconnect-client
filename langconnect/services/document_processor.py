@@ -29,6 +29,9 @@ HANDLERS = {
 
 SUPPORTED_MIMETYPES = sorted(HANDLERS.keys())
 
+# 여러 파서들을 모아놓고, MIME 타입에 따라 적절한 파서를 골라주는 라우터 클래스
+# HANDLERS를 입력으로 받음(위의 내용)
+# 핸들러의 키값은 MIME(타입/서브타입 형식) 타입으로 설정해야 함
 MIMETYPE_BASED_PARSER = MimeTypeBasedParser(
     handlers=HANDLERS,
     fallback_parser=None,
@@ -42,7 +45,7 @@ async def process_document(
     chunk_overlap: int = 200,
 ) -> list[Document]:
     """Process an uploaded file into LangChain documents."""
-    # Generate a unique ID for this file processing instance
+    # Generate a unique ID for this file processing instance : 키값 하나 생성해둠
     file_id = uuid.uuid4()
 
     contents = await file.read()
@@ -66,11 +69,13 @@ async def process_document(
         elif filename_lower.endswith(".docx"):
             mime_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 
+    # MimeTypeBasedParser에서 입력받아야 하는 형식 : Blob 컨테이너(랭체인에서 쓰는 객체)
     blob = Blob(data=contents, mimetype=mime_type)
 
-    docs = MIMETYPE_BASED_PARSER.parse(blob)
+    docs = MIMETYPE_BASED_PARSER.parse(blob) # 파싱 수행
 
     # Add provided metadata to each document
+    # 메타데이터가 있는데 doc에 정의되지 않았다면 doc.metadata에 정의
     if metadata:
         for doc in docs:
             # Ensure metadata attribute exists and is a dict
@@ -80,6 +85,8 @@ async def process_document(
             doc.metadata.update(metadata)
 
     # Create text splitter with provided parameters
+    # 리커시브스플리터 적용
+    # TODO : 스플리터 개선 영억
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
@@ -88,6 +95,7 @@ async def process_document(
     split_docs = text_splitter.split_documents(docs)
 
     # Add the generated file_id to all split documents' metadata
+    # 메타데이터에 file_id(키값) 저장
     for split_doc in split_docs:
         if not hasattr(split_doc, "metadata") or not isinstance(
             split_doc.metadata, dict

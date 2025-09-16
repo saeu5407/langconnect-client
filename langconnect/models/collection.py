@@ -2,12 +2,13 @@ import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
+# pydantic BaseModel은 클래스 __init__을 자동으로 생성
 
 # =====================
 # Collection Schemas
 # =====================
 
-
+# 콜렉션 생성 클래스(DB 콜렉션을 의미)
 class CollectionCreate(BaseModel):
     """Schema for creating a new collection."""
 
@@ -16,7 +17,7 @@ class CollectionCreate(BaseModel):
         default_factory=dict, description="Optional metadata for the collection."
     )
 
-
+# 수정 클래스(디폴트를 None으로 해둠)
 class CollectionUpdate(BaseModel):
     """Schema for updating an existing collection."""
 
