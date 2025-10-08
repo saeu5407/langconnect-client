@@ -40,6 +40,7 @@ class CollectionsManager:
         """Initialize the collection manager with a user ID."""
         self.user_id = user_id
 
+    # DB 셋업
     @staticmethod
     async def setup() -> None:
         """Set up method should run any necessary initialization code.
@@ -50,12 +51,14 @@ class CollectionsManager:
         get_vectorstore()
         logger.info("Database initialization complete.")
 
+    # 콜렉션 리스트 조회
     async def list(
         self,
     ) -> list[CollectionDetails]:
         """List all collections owned by the given user, ordered by logical name."""
         async with get_db_connection() as conn:
             records = await conn.fetch(
+                # 본인의 컬렉션만 조회하기 위한 user_id 조건이 있음
                 """
                 SELECT 
                     c.uuid, 
@@ -70,7 +73,7 @@ class CollectionsManager:
                 """,
                 self.user_id,
             )
-
+        # json.load를 통해 이쁘게 가공해서 리턴
         result: list[CollectionDetails] = []
         for r in records:
             metadata = json.loads(r["cmetadata"])
@@ -86,6 +89,7 @@ class CollectionsManager:
             )
         return result
 
+    # get을 통해 한 번 조회하여 리턴
     async def get(
         self,
         collection_id: str,
@@ -115,6 +119,7 @@ class CollectionsManager:
             "table_id": rec["name"],
         }
 
+    # 콜렉션 생성
     async def create(
         self,
         collection_name: str,
@@ -136,12 +141,15 @@ class CollectionsManager:
 
         # For now assign a table identifier safe for SQL naming
         # Use hex string and prefix to avoid leading digits/hyphens
-        table_id = f"tbl_{uuid.uuid4().hex}"
+        table_id = f"tbl_{uuid.uuid4().hex}" # table_id로 쓸 유니크 키 생성
 
         # triggers PGVector to create both the vectorstore and DB entry
+        # PGVector로 불러오는데 중복된 이름이 없으면 알아서 생성하는 구조라 create에도 똑같이 get_vectorstore를 사용하는 것으로 보임
+        # 여기서 불러오는 name은 table_id로 생성한 유니크 키
         get_vectorstore(table_id, collection_metadata=metadata)
 
         # Fetch the newly created table.
+        # 제데로 생성되었는지 체크
         async with get_db_connection() as conn:
             rec = await conn.fetchrow(
                 """
@@ -159,6 +167,7 @@ class CollectionsManager:
         name = metadata.pop("name")
         return {"uuid": str(rec["uuid"]), "name": name, "metadata": metadata}
 
+    # 
     async def update(
         self,
         collection_id: str,

@@ -36,6 +36,11 @@ mcp:
 	@uv run python mcpserver/create_mcp_json.py
 	@echo "✅ MCP configuration created successfully!"
 
+h-ro:
+	@echo "🔧 Creating MCP configuration H-RO..."
+	@uv run python mcpserver/create_mcp_json_hro.py
+	@echo "✅ MCP configuration created successfully!"
+
 TEST_FILE ?= tests/unit_tests
 
 test:

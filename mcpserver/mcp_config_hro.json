@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "h-ro": {
+      "command": "/Volumes/seuk_ssd/PycharmProjects/langconnect-client/.venv/bin/python",
+      "args": [
+        "/Volumes/seuk_ssd/PycharmProjects/langconnect-client/mcpserver/mcp_server_hro.py"
+      ],
+      "env": {
+        "API_BASE_URL": "http://localhost:8080",
+        "SUPABASE_JWT_SECRET": "eyJhbGciOiJIUzI1NiIsImtpZCI6IjZweURUQnZjaGJJRmRzOTciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2Fka2lzZnp4ZmRjY3F2b2RhcXp6LnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIzZjNkMzYxMC05YWVhLTRkOGMtYjgyOS04M2IzZjNhMTc4MTkiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU4MTg2MTMwLCJpYXQiOjE3NTgxODI1MzAsImVtYWlsIjoiZHlkZGwxOTkzQGdtYWlsLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiJkeWRkbDE5OTNAZ21haWwuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiM2YzZDM2MTAtOWFlYS00ZDhjLWI4MjktODNiM2YzYTE3ODE5In0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjE3NTgxODI1MzB9XSwic2Vzc2lvbl9pZCI6IjcyZjUwYzk0LWFhNzAtNDNjMS1iY2Q0LTQ2NTliYzM1NTJlMSIsImlzX2Fub255bW91cyI6ZmFsc2V9.PgiTaeMcrkn9Ga_4LcESQ0CInD0g_aN2celGBb2XkQs"
+      }
+    }
+  }
+}
