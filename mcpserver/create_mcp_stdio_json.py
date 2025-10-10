@@ -166,7 +166,7 @@ def create_mcp_json():
     else:  # Mac, Ubuntu etc
         python_path = str(project_root.parent / ".venv" / "bin" / "python")
 
-    server_script = project_root / "mcp_server.py"
+    server_script = project_root / "mcp_stdio_server.py"
 
     # Get environment variables including access token
     env_vars = get_env_variables()
@@ -181,7 +181,7 @@ def create_mcp_json():
         }
     }
 
-    json_path = project_root / "mcp_config.json"
+    json_path = project_root / "mcp_stdio_config.json"
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
@@ -201,7 +201,7 @@ def create_mcp_json():
             "   - Run this script again to generate a new configuration with a fresh token"
         )
         print(
-            "   - Keep your mcp_config.json file secure and don't commit it to version control"
+            "   - Keep your mcp_stdio_config.json file secure and don't commit it to version control"
         )
 
     return str(json_path)

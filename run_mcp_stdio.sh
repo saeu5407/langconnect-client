@@ -7,4 +7,4 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR"
 
 # Run the MCP server with uv
-exec uv run python mcpserver/mcp_server.py
+exec uv run python mcpserver/mcp_stdio_server.py

@@ -1,109 +1,71 @@
-# LangConnect MCP Servers
+# FastMCP 기반 HTTP 서버 & stdio
 
-This directory contains Model Context Protocol (MCP) server implementations for LangConnect.
+## HTTP 서버
 
-## Authentication
+향후 사용이 편리하도록 http 기반으로 서버 설정<Br>
+지금은 streamable-http 로 했는데, 버전 올리면 http로 바뀌는 것 같음. 나중에 변경 필요<Br>
 
-Both MCP servers use Supabase JWT authentication. You need to provide a valid access token to use these servers.
+### 설명
 
-### How to Get Your Access Token
+- 메인 코드 : mcp_http_server.py
+- 프록시 서버 : proxy_server.py (클로드 데스크탑용)
+  - 클로드 데스크탑의 경우 로컬에 별도 프록시 서버가 필요함(https://wikidocs.net/288326)
+  - Claude Desktop의 설정 파일인 claude_desktop_config.json에는 반드시 command 필드가 포함되어야 하기 때문
 
-#### Option 1: Using the Helper Script (Recommended)
-
-Run the provided helper script:
-```bash
-cd mcpserver
-python get_access_token.py
-```
-
-Enter your email and password when prompted. The script will:
-- Sign you in
-- Test the token
-- Display the access token for you to copy
-
-#### Option 2: From the Next.js UI
-
-1. **Sign in to the Next.js UI** at http://localhost:3000
-2. **Open Developer Tools** in your browser (F12)
-3. **Go to the Application/Storage tab**
-4. **Find Session Storage** for localhost:3000
-5. **Look for the `access_token` key**
-6. **Copy the JWT token value**
-
-### Using the Access Token
-
-#### For Standard MCP Server (stdio)
-
-Update `mcp_config.json`:
-```json
+#### 원격 MCP 적용
+```python
+# 클로드 데스크탑 이외에는 간단하게 아래 코드로 추가
+# cursor 기준
+# mcp.json 수정
 {
   "mcpServers": {
-    "langconnect-rag-mcp": {
-      "command": "/path/to/python",
-      "args": [
-        "/path/to/mcp_server.py"
-      ],
-      "env": {
-        "API_BASE_URL": "http://localhost:8080",
-        "SUPABASE_JWT_SECRET": "YOUR_JWT_TOKEN_HERE"
-      }
+    "mcp-rag": {
+      "id": "mcp-rag",
+      "name": "mcp-rag",
+      "url": "http://remote-mcpserver-ip:8000", # 내 서버 IP
+      "key": null,
+      "enabled": true
     }
   }
 }
 ```
 
-#### For SSE Server
-
-Set the environment variable:
-```bash
-export SUPABASE_JWT_SECRET="YOUR_JWT_TOKEN_HERE"
-docker compose up -d mcp-sse
+#### 클로드 데스크탑 기준
+```python
+# 경로는 수정 필요
+{
+  "mcpServers": {
+    "mcp-rag": {
+      "command": "/Users/dkcns/.local/bin/uv",
+      "args": [
+          "--directory",
+          "/Volumes/seuk_ssd/PycharmProjects/langconnect-client",
+	  "run",
+          "mcpserver/proxy_server.py"
+      ]
+    }
+  }
+}
 ```
 
-Or add it to your `.env` file:
-```
-SUPABASE_JWT_SECRET=YOUR_JWT_TOKEN_HERE
-```
+### 실행 방법
 
-## Token Expiration
+- langconnect-client 또는 langconnect가 켜져 있는 상황에서, SUPABASE 계정이 준비된 상황
+- `./run_mcp_http.sh` 실행
 
-Supabase JWT tokens expire after a certain period (typically 1 hour). When your token expires:
 
-1. Sign in again through the Next.js UI
-2. Get the new access token
-3. Update your configuration with the new token
+## Stdio 방식
+기본 방식
 
-## Testing with MCP Inspector
+### 설명
+- 메인 코드 : mcp_stdio_server.py
+  - 얘는 그때그때 필요할 때 마다 메인 코드를 run 하는 방식이라, mcp.json이 uv run으로 구성됨
+- 서브 코드 : create_mcp_stdio_json.py
+  - 이걸 실행해서 SUPABASE DB 안에 생성한 ID, PW를 적으면 1시간짜리 유효기간의 json 파일이 나옴
+  - `mcp_stdio_config.json` 을 MCP에 적용하면 됨
 
-To test the MCP server with [MCP Inspector](https://github.com/modelcontextprotocol/inspector):
+### 실행 방법
 
-### Option 1: Using npx (Recommended)
-
-```bash
-# Set your access token
-export SUPABASE_JWT_SECRET="your-jwt-token-here"
-
-# Run with MCP Inspector
-npx @modelcontextprotocol/inspector python mcp/mcp_server.py
-```
-
-This will start the MCP server and open the Inspector UI in your browser.
-
-### Option 2: Using the SSE Server
-
-1. Start the SSE server:
-```bash
-export SUPABASE_JWT_SECRET="your-jwt-token-here"
-python mcp/mcp_langconnect_sse_server.py
-```
-
-2. In MCP Inspector:
-   - URL: `http://localhost:8765`
-   - Transport: `sse`
-
-## Security Notes
-
-- **Never commit tokens** to version control
-- Keep your `.env` file in `.gitignore`
-- Tokens are user-specific and grant access to that user's data
-- Always use HTTPS in production environments
+- langconnect-client 또는 langconnect가 켜져 있는 상황에서, SUPABASE 계정이 준비된 상황
+- `create_mcp_stdio_json.py` 실행해서 json 생성 후 MCP에 적용
+- `./run_mcp_stdio.sh` 실행

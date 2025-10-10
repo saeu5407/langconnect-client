@@ -23,23 +23,15 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 # Create FastMCP server
 mcp = FastMCP(
-    name="h-ro",
-    instructions="""This server provides vector search tools that can be used to search for documents in a collection. It is an HR-related tool of Daekyo CNS(대교씨엔에스).
-    Call list_collections() to get a list of available collections. 
-    Call get_collection(collection_id) to get details of a specific collection. 
-    Call search_documents(collection_id, query, limit, search_type, filter_json) to search for documents in a collection. 
-    Call list_documents(collection_id, limit) to list documents in a collection.
-    Call add_documents(collection_id, text) to add a text document to a collection. 
-    Call delete_document(collection_id, document_id) to delete a document from a collection. 
-    Call get_health_status() to check the health status of the server.
-    """,
+    name="rag-mcp",
+    instructions="This server provides vector search tools that can be used to search for documents in a collection. Call list_collections() to get a list of available collections. Call get_collection(collection_id) to get details of a specific collection. Call search_documents(collection_id, query, limit, search_type, filter_json) to search for documents in a collection. Call list_documents(collection_id, limit) to list documents in a collection. Call add_documents(collection_id, text) to add a text document to a collection. Call delete_document(collection_id, document_id) to delete a document from a collection. Call get_health_status() to check the health status of the server.",
 )
 
 
 # Basic dynamic resource returning a string
 @mcp.resource("resource://how-to-use-langconnect-rag-mcp")
 def get_instructions() -> str:
-    """Provides instructions on how to use the H-RO, HR-related tool of Daekyo CNS(대교씨엔에스)"""
+    """Provides instructions on how to use the LangConnect RAG MCP server."""
     return """
 Follow the guidelines step-by-step to find the answer.
 1. Use `list_collections` to list up collections and find right **Collection ID** for user's request.

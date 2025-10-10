@@ -57,4 +57,4 @@ echo -e "${YELLOW}Note: You may need to authenticate with your Supabase credenti
 echo ""
 
 # Run the MCP SSE server
-uv run python mcpserver/mcp_sse_server.py
+uv run python mcpserver/mcp_http_server.py
