@@ -407,27 +407,89 @@ def start_token_refresher():
     t.start()
 
 
+
 # Initialize client (will be updated with valid token on startup)
 client = LangConnectClient(API_BASE_URL, "")
+
+# --- Client registry to decouple tools from direct global 'client' usage ---
+_CLIENT: Optional[LangConnectClient] = None
+
+def set_client(c: LangConnectClient) -> None:
+    """Register the HTTP client for use inside tool functions (so they can be moved to other modules)."""
+    global _CLIENT
+    _CLIENT = c
+
+def get_client() -> LangConnectClient:
+    """Retrieve the registered HTTP client. Raises if not set."""
+    if _CLIENT is None:
+        raise RuntimeError("HTTP client not initialized yet")
+    return _CLIENT
+# --------------------------------------------------------------------------
 
 
 # Create FastMCP server
 mcp = FastMCP(
     name="mcp-rag",
-    instructions="This server provides vector search tools that can be used to search for documents in a collection. Call list_collections() to get a list of available collections. Call get_collection(collection_id) to get details of a specific collection. Call search_documents(collection_id, query, limit, search_type, filter_json) to search for documents in a collection. Call list_documents(collection_id, limit) to list documents in a collection. Call add_documents(collection_id, text) to add a text document to a collection. Call delete_document(collection_id, document_id) to delete a document from a collection. Call get_health_status() to check the health status of the server.",
+    instructions="""이 서버는 대교씨엔에스 회사의 문서를 조회할 수 있는 기능을 제공합니다.
+
+📌 Start here: how_to_use()
+→ 해당 도구를 실행한 후 결과 내용을 토대로 문서 조회를 수행하세요.
+""",
 )
 
 
 # Basic dynamic resource returning a string
-@mcp.resource("resource://how-to-use-langconnect-rag-mcp")
-def get_instructions() -> str:
-    """Provides instructions on how to use the LangConnect RAG MCP server."""
+# @mcp.resource(
+#     "resource://how-to-use-rag-mcp",
+#     name="RAG Playbook",
+#     description="반드시 따라야 하는 단계별 사용 가이드입니다. 먼저 확인해서 가이드라인을 따라 도구를 사용하세요."
+# )
+# def get_instructions() -> str:
+#     """반드시 따라야 하는 단계별 사용 가이드입니다. 가이드라인과 도구 사용 방법을 확인하세요."""
+#     return """
+# # How to Use
+
+# Follow these steps:
+# 1. Call `list_collections` to discover and choose the correct **Collection ID** for the user's request.
+# 2. Call `multi_query(question)` to generate at least 3 sub‑questions related to the original request.
+# 3. For each sub‑question, call `search_documents(collection_id, query, limit=5, search_type="hybrid")` and collect the most relevant passages.
+# 4. Synthesize the final answer using the searched documents.
+
+# **Output rules**
+# - Answer in the same language as the user's request.
+# - Append the sources you referenced at the very end.
+# """
+@mcp.tool(
+        name="get-info",
+        description="""이 MCP는 대교씨엔에스 회사의 문서 조회를 수행하는 도구입니다."""
+)
+async def get_info() -> str:
     return """
-Follow the guidelines step-by-step to find the answer.
-1. Use `list_collections` to list up collections and find right **Collection ID** for user's request.
-2. Use `multi_query` to generate at least 3 sub-questions which are related to original user's request.
-3. Search all queries generated from previous step(`multi_query`) and find useful documents from collection.
-4. Use searched documents to answer the question."""
+이 MCP는 대교씨엔에스 회사의 문서 조회를 수행하는 도구입니다.
+how_to_use()를 호출하여 각 도구의 사용 방법과 가이드라인을 확인한 후 다음 도구를 진행하세요.
+"""
+
+
+@mcp.tool(
+        name="how-to-use",
+        description="""단계별 사용 가이드입니다. 반드시 how-to-use를 먼저 호출해서 각 도구의 사용 방법과 가이드라인을 확인하세요.""",
+)
+async def how_to_use() -> str:
+    return """
+# How to Use
+
+Follow these steps:
+1.	list_collections를 호출하여 사용자의 요청에 적합한 collection_id를 확인합니다.
+2.	multi_query(question)을 호출하여 원래 질문과 관련된 하위 질문 3개 이상을 생성합니다.
+3.	각 하위 질문에 대해 search_documents(collection_id, query, limit=5, search_type="hybrid")를 실행하여 가장 관련성이 높은 문서를 검색합니다.
+4.	검색된 문서들이 사용자의 질문에 직접적이고 구체적으로 답하고 있는지 평가하세요. 사용자의 질문을 충족시키는 내용이 아니라면 적절하지 않다고 판단하세요. 
+5.	적절하지 않은 경우, 다른 collection_id에 대해 search_documents(collection_id, query, limit=5, search_type="hybrid")를 다시 수행하세요.
+6.	질문의 의도와 직접적으로 관련된 문서를 찾을 때까지 반복하세요.
+7.	적절한 문서들이 수집되었다면 이를 기반으로 답변하세요.
+
+**Output rules**
+- Append the sources you referenced at the very end.
+"""
 
 
 @mcp.prompt("rag-prompt")
@@ -481,7 +543,20 @@ async def search_documents(
     search_type: str = "semantic",
     filter_json: Optional[str] = None,
 ) -> str:
-    """Search documents in a collection using semantic, keyword, or hybrid search."""
+    """
+    Search documents in a collection using semantic, keyword, or hybrid search.
+
+    Example:
+    ```
+    {
+      "collection_id": "<UUID from list_collections()>",
+      "query": "연차 사용 기준",
+      "limit": 5,
+      "search_type": "semantic"
+    }
+    ```
+    """
+
     search_data = {"query": query, "limit": limit, "search_type": search_type}
 
     if filter_json:
@@ -490,7 +565,7 @@ async def search_documents(
         except json.JSONDecodeError:
             return "Error: Invalid JSON in filter parameter"
 
-    results = await client.request(
+    results = await get_client().request(
         "POST", f"/collections/{collection_id}/documents/search", json=search_data
     )
 
@@ -506,10 +581,13 @@ async def search_documents(
     return output
 
 
-@mcp.tool
+@mcp.tool(
+        name="list_collections",
+        description="""확인할 수 있는 모든 문서 collections를 조회합니다. """,
+)
 async def list_collections() -> str:
     """List all available document collections."""
-    collections = await client.request("GET", "/collections")
+    collections = await get_client().request("GET", "/collections")
 
     if not collections:
         return "No collections found."
@@ -523,14 +601,21 @@ async def list_collections() -> str:
     return output
 
 
-@mcp.tool
+@mcp.tool(
+        name="get_collection",
+        description="""특정 collection의 상세 정보를 확인합니다."""
+)
 async def get_collection(collection_id: str) -> str:
     """Get details of a specific collection."""
-    collection = await client.request("GET", f"/collections/{collection_id}")
+    collection = await get_client().request("GET", f"/collections/{collection_id}")
     return f"**{collection.get('name', 'Unnamed')}**\nID: {collection.get('uuid', 'Unknown')}"
 
 
-@mcp.tool
+@mcp.tool(
+        name="create_collection",
+        description="""문서 DB에 collection을 생성합니다.""",
+        enabled=False,
+)
 async def create_collection(name: str, metadata_json: Optional[str] = None) -> str:
     """Create a new collection."""
     data = {"name": name}
@@ -541,21 +626,21 @@ async def create_collection(name: str, metadata_json: Optional[str] = None) -> s
         except json.JSONDecodeError:
             return "Error: Invalid JSON in metadata"
 
-    result = await client.request("POST", "/collections", json=data)
+    result = await get_client().request("POST", "/collections", json=data)
     return f"Collection '{result.get('name')}' created with ID: {result.get('uuid')}"
 
 
 @mcp.tool
 async def delete_collection(collection_id: str) -> str:
     """Delete a collection and all its documents."""
-    await client.request("DELETE", f"/collections/{collection_id}")
+    await get_client().request("DELETE", f"/collections/{collection_id}")
     return f"Collection {collection_id} deleted successfully!"
 
 
 @mcp.tool
 async def list_documents(collection_id: str, limit: int = 20) -> str:
     """List documents in a collection."""
-    docs = await client.request(
+    docs = await get_client().request(
         "GET", f"/collections/{collection_id}/documents", params={"limit": limit}
     )
 
@@ -581,12 +666,12 @@ async def add_documents(collection_id: str, text: str) -> str:
     data = {"metadatas_json": json.dumps([metadata])}
 
     # Remove Content-Type for multipart
-    headers = client.headers.copy()
+    headers = get_client().headers.copy()
     headers.pop("Content-Type", None)
 
     async with httpx.AsyncClient() as http_client:
         response = await http_client.post(
-            f"{client.base_url}/collections/{collection_id}/documents",
+            f"{get_client().base_url}/collections/{collection_id}/documents",
             headers=headers,
             files=files,
             data=data,
@@ -603,7 +688,7 @@ async def add_documents(collection_id: str, text: str) -> str:
 @mcp.tool
 async def delete_document(collection_id: str, document_id: str) -> str:
     """Delete a document from a collection."""
-    await client.request(
+    await get_client().request(
         "DELETE", f"/collections/{collection_id}/documents/{document_id}"
     )
     return f"Document {document_id} deleted successfully!"
@@ -649,7 +734,7 @@ Original question: {question}""",
 @mcp.tool
 async def get_health_status() -> str:
     """Check API health status."""
-    result = await client.request("GET", "/health")
+    result = await get_client().request("GET", "/health")
     return f"Status: {result.get('status', 'Unknown')}\nAPI: {API_BASE_URL}\nAuth: {'✓' if SUPABASE_JWT_SECRET else '✗'}"
 
 
@@ -667,6 +752,7 @@ if __name__ == "__main__":
 
     # Update the client with the valid token
     client.update_token(valid_token)
+    set_client(client)
 
     # 갱신 스케줄러 시작
     start_token_refresher()

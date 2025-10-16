@@ -22,7 +22,7 @@
     "mcp-rag": {
       "id": "mcp-rag",
       "name": "mcp-rag",
-      "url": "http://remote-mcpserver-ip:8000", # 내 서버 IP
+      "url": "http://remote-mcpserver-ip:4200/mcp", # 내 서버 IP
       "key": null,
       "enabled": true
     }
