@@ -594,8 +594,13 @@ async def list_collections() -> str:
 
     output = "## Collections\n\n"
     for coll in collections:
+        meta = coll.get('metadata')
+        if not isinstance(meta, dict):
+            meta = {}
+        description = meta.get('description') or 'Unknown'
+
         output += (
-            f"- **{coll.get('name', 'Unnamed')}** (ID: {coll.get('uuid', 'Unknown')})\n"
+            f"- **{coll.get('name', 'Unnamed')}** (ID: {coll.get('uuid', 'Unknown')}) (Description: {description})\n"
         )
 
     return output
