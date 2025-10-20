@@ -164,4 +164,5 @@ prof
 virtualenv/
 
 # MCP configuration with sensitive data
-mcp/mcp_config.json
+mcpserver/mcp_config.json
+mcpserver/mcp_stdio_config.json
